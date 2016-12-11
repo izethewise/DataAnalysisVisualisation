@@ -1,6 +1,8 @@
 # Set up libraries.
 library(ggplot2)
 library(readr)
+library(sqldf)
+library(RH2)
 
 # Read in dataset.
 pol <- read_csv("US_pollution_sample.csv", 
@@ -44,11 +46,14 @@ C0_S2.plot + geom_line()
 # Similar pattern observed for C0
 
 # Take one site and two years of C0 2013/2014 site 2
-DS_C0_S2_1415 <- DS_C0[DS_C0$`Date Local` >= as.Date("2013-01-01") & DS_C0$`Date Local` <= as.Date("2015-12-31"),]
+DS_C0_S2_1415 <- DS_C0[DS_C0$`Date Local` >= as.Date("2014-05-01") & DS_C0$`Date Local` <= as.Date("2014-08-31"),]
 C0_S2.plot <- ggplot(data=DS_C0_S2_1415) + aes(x=`Date Local` ,y=`CO Mean`)
 C0_S2.plot + geom_line()
 
-
+# It looks as though there might be two mean values per day coming through so investigate further.
+jul <- pol[pol$`Date Local` >= as.Date("2014-07-01") & pol$`Date Local` <= as.Date("2014-07-31"),]
+jul <- jul[jul$`Site Num`==2,]
+View(jul)
 
 C0.plot <- ggplot(data=DS_C0) + aes(x=as.factor(`Site Num`),y=`CO Mean`)
 C0.plot + geom_boxplot()
