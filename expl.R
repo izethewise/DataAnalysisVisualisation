@@ -8,6 +8,12 @@ library(RH2)
 pol <- read_csv("US_pollution_sample.csv", 
                                  col_types = cols('Date Local' = col_date(format = "%Y-%m-%d"), 
                                  'NO2 1st Max Value' = col_double()))
+# Create unique site ref.
+str(pol)
+pol$unqref <- paste(as.character(pol$`State Code`),as.character(pol$`Site Num`))
+View(pol)
+pol <- unique(pol)
+
 
 # Filter out zero N02 as zero seems unlikely.
 DS_N02 <- pol[pol$`NO2 Mean`>0,]
@@ -53,10 +59,14 @@ C0_S2.plot + geom_line()
 # It looks as though there might be two mean values per day coming through so investigate further.
 jul <- pol[pol$`Date Local` >= as.Date("2014-07-01") & pol$`Date Local` <= as.Date("2014-07-31"),]
 jul <- jul[jul$`Site Num`==2,]
+C0_S2.plot <- ggplot(data=jul) + aes(x=`Date Local` ,y=`CO Mean`)
+C0_S2.plot + geom_line()
 View(jul)
 
 C0.plot <- ggplot(data=DS_C0) + aes(x=as.factor(`Site Num`),y=`CO Mean`)
 C0.plot + geom_boxplot()
 
 
-unique(pol$`Site Num`)
+
+
+unique(pol)
