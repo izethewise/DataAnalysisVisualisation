@@ -1,0 +1,176 @@
+---
+title: "Analysis of US Polution Data"
+author: "Isaac Murray"
+date: "15 December 2016"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# Set up libraries.
+library(ggplot2)
+library(readr)
+library(sqldf)
+library(RH2)
+library(grid)
+library(gridExtra)
+# Read in dataset.
+pol <- read_csv("US_pollution_sample.csv", 
+                col_types = cols('Date Local' = col_date(format = "%Y-%m-%d"), 
+                                 'NO2 1st Max Value' = col_double()))
+# Use to output summary
+polsum <- pol
+
+# Dedup dataset.
+pol <- unique(pol[!is.na(pol$`CO AQI`) & !is.na(pol$`SO2 AQI`),])
+
+# Add derived variables.
+pol$unqref <- paste(as.character(pol$`State Code`),as.character(pol$`Site Num`))
+pol$unqsite <- paste(as.character(pol$`County`),as.character(pol$`State`), sep=", ")
+pol$unqsitemul <- paste(as.character(pol$`County`),as.character(pol$`State`), sep="\n")
+pol$unqsitemul <- gsub(" ", "\n", pol$unqsitemul)
+pol$urban <- !(pol$City=="Not in a city")
+pol$year <- as.integer(format(pol$`Date Local`,'%Y'))
+pol$month <- as.integer(format(pol$`Date Local`,'%m'))
+```
+
+# Introduction
+
+This report describes an exploratory data analysis of environmental polution data taken from the United States Environmental Protection Agency (EPA) website. 
+
+# Dataset Description
+
+The original EPA data is contained in multiple files and this has been combined and made available for download. The dataset being analysed is a subset of the downloaded data.  
+
+The following table summarises the dataset variables. Descriptions are copied verbatim from the download site:
+
+| Name              | Type        | Description                                                                   |R Data type |
+|:------------------|:------------|:------------------------------------------------------------------------------|:------------|
+| State Code        | Categorical |The code allocated by US EPA to each state                                     | int |
+| County code       | Categorical |The code of counties in a specific state allocated by US EPA                   | int |
+| Site Num          | Categorical | The site number in a specific county allocated by US EPA                      | int |
+| Address           | Categorical | State of monitoring site                                                      | chr |
+| State             | Categorical | The code allocated by US EPA to each state                                    | int |
+| County            | Categorical | County of monitoring site                                                     | chr |
+| City              | Categorical | City of the monitoring site                                                   | chr | 
+| Date Local        | Categorical | Date of monitoring                                                            | Date |  
+| NO2 Units         | Continuous | The units measured for NO2                                                     | num | 
+| NO2 Mean          | Continuous | The arithmetic mean of concentration of NO2 within a given day                 | num | 
+| NO2 AQI           | Categorical | The calculated air quality index of NO2 within a given day                    | int |
+| NO2 1st Max Value | Continuous | The maximum value obtained for NO2 concentration in a given day                | num |
+| NO2 1st Max Hour  | Continuous | The hour when the maximum NO2 concentration was recorded in a given day        | num |
+
+# Descriptive statistics and data artefacts
+```{r descriptive, echo=FALSE}
+#summary(polsum)
+```
+## Measurement sites and date range of plots  
+The dataset includes data collected at seven sites:  
+`r paste(unique(pol$unqsite), sep="\n")`
+
+The following plot shows the date ranges of the measurements taken at each site. The gaps indicate missing data. 
+```{r missing, echo=FALSE}
+ggplot(pol, aes(x=`Date Local`,y=unqsitemul)) + geom_point()
+```
+
+## NO2 variables
+```{r varNO2, echo=FALSE, message=FALSE, warning=FALSE}
+div <- 100
+bw <- max(pol$`NO2 Mean`)/div
+p1 <- ggplot(data=pol) + aes(x=`NO2 Mean`) + geom_histogram(binwidth=bw) + scale_x_continuous(limits = c(-5, 45))
+div <- 100
+bw <- max(pol$`NO2 1st Max Value`)/div
+p2 <- ggplot(data=pol) + aes(x=`NO2 1st Max Value`) + geom_histogram(binwidth=bw) + scale_x_continuous(limits = c(-5, 45))
+bw <- max(pol$`NO2 AQI`)/div
+p3 <- ggplot(data=pol) + aes(x=`NO2 AQI`) + geom_bar()# geom_histogram(binwidth=1) 
+p4 <- ggplot(data=pol) + aes(x=`NO2 1st Max Hour`) + geom_bar()#geom_histogram(binwidth=1) 
+grid.arrange(p1, p2, p3, p4)
+```
+### Artefacts ###  
+#### NO2 1st Max Value  
+Notwithstanding a measurement bias towards whole numbers of units, Baltimore, Maryland and Cass, North Dakota sites appear to measure NO2 1st Max Value to a greater precision than the other sites:  
+```{r NO2MaxArt, echo=FALSE, message=FALSE, warning=FALSE}
+div <- 250
+bw <- max(pol$`NO2 1st Max Value`)/div
+ggplot(data=pol) + aes(x=`NO2 1st Max Value`) + geom_histogram(binwidth=bw) + scale_x_continuous(limits = c(0,20))+ facet_wrap(~unqsite,scales="free")
+```
+#### NO2 AQI  
+All sites indicate a bias towards the values '8' and '25' for NO2 AQI:  
+```{r NO2AQIArt, echo=FALSE, message=FALSE, warning=FALSE}
+bw <- max(pol$`NO2 AQI`)/div
+ggplot(data=pol) + aes(x=`NO2 AQI`) + geom_bar()+ facet_wrap(~unqsite,scales="free")+ scale_x_continuous(limits = c(6,26))
+```
+
+## O3 variables
+```{r varO3, echo=FALSE, message=FALSE, warning=FALSE}
+div <- 100
+bw <- max(pol$`O3 Mean`)/div
+p1 <- ggplot(data=pol) + aes(x=`O3 Mean`) + geom_histogram(binwidth=bw)
+div <- 200
+bw <- max(pol$`O3 1st Max Value`)/div
+p2 <- ggplot(data=pol) + aes(x=`O3 1st Max Value`) + geom_histogram(binwidth=bw)
+bw <- max(pol$`O3 AQI`)/div
+p3 <- ggplot(data=pol) + aes(x=`O3 AQI`) + geom_bar()
+p4 <- ggplot(data=pol) + aes(x=`O3 1st Max Hour`) + geom_bar()
+grid.arrange(p1, p2, p3, p4)
+```
+
+## SO2 variables
+```{r varSO2, echo=FALSE, message=FALSE, warning=FALSE}
+p1 <- ggplot(data=pol) + aes(x=`SO2 Mean`) + geom_histogram(binwidth=0.5)
+p2 <- ggplot(data=pol) + aes(x=`SO2 1st Max Value`) + geom_histogram(binwidth=1) + scale_x_continuous(limits = c(-5, 45))
+p3 <- ggplot(data=pol) + aes(x=`SO2 AQI`) + geom_bar()
+p4 <- ggplot(data=pol) + aes(x=`SO2 1st Max Hour`) + geom_bar() 
+grid.arrange(p1, p2, p3, p4)
+```
+### Artefacts ###  
+All sites other than Baltimore, Maryland and arguabley Cass, North Dakota show a disproportionate frequency of zero value measurements.  
+```{r artSO2, echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(data=pol) + aes(x=`SO2 Mean`) + geom_histogram(binwidth=0.1)+ facet_wrap(~unqsite,scales="free")
+```
+
+## CO variables
+```{r varCO, echo=FALSE, message=FALSE, warning=FALSE}
+div <- 500
+bw <- max(pol$`CO Mean`)/div
+p1 <- ggplot(data=pol) + aes(x=`CO Mean`) + geom_histogram(binwidth=bw) #+ scale_x_continuous(limits = c(-.1, 1.2))
+p2 <- ggplot(data=pol) + aes(x=`CO 1st Max Value`) + geom_histogram(binwidth=.1) + scale_x_continuous(limits = c(-.1, 1.5))
+bw <- max(pol$`CO AQI`)/div
+p3 <- ggplot(data=pol) + aes(x=`CO AQI`) + geom_bar()
+p4 <- ggplot(data=pol) + aes(x=`CO 1st Max Hour`) + geom_bar()
+grid.arrange(p1, p2, p3, p4)
+```
+### Artefacts ###
+Artefacts
+All sites other than Baltimore, Maryland a disproportionate frequency of zero measurements.
+```{r artCO, echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(data=pol) + aes(x=`SO2 Mean`) + geom_histogram(binwidth=0.1)+ facet_wrap(~unqsite,scales="free")
+```
+
+
+
+## Line plots of means over time for each polutant
+```{r line, echo=FALSE}
+ggplot(pol, aes(x=`Date Local`,y=`NO2 Mean`)) + geom_line() + facet_wrap(~unqsite,scales="free")
+ggplot(pol, aes(x=`Date Local`,y=`O3 Mean`)) + geom_line() + facet_wrap(~unqsite,scales="free")
+ggplot(pol, aes(x=`Date Local`,y=`SO2 Mean`)) + geom_line() + facet_wrap(~unqsite,scales="free")
+ggplot(pol, aes(x=`Date Local`,y=`CO Mean`)) + geom_line() + facet_wrap(~unqsite,scales="free")
+```
+
+## Box plots of means by month of year for each polutant
+```{r box2, echo=FALSE}
+ggplot(data=pol) + aes(reorder(month,`NO2 Mean`),`NO2 Mean`) + geom_boxplot() + scale_x_discrete(limits=unique(pol$month)) + facet_wrap(~unqsite,scales="free")
+ggplot(data=pol) + aes(reorder(month,`O3 Mean`),`O3 Mean`) + geom_boxplot() + scale_x_discrete(limits=unique(pol$month)) + facet_wrap(~unqsite,scales="free")
+ggplot(data=pol) + aes(reorder(month,`SO2 Mean`),`SO2 Mean`) + geom_boxplot() + scale_x_discrete(limits=unique(pol$month)) + facet_wrap(~unqsite,scales="free")
+ggplot(data=pol) + aes(reorder(month,`CO Mean`),`CO Mean`) + geom_boxplot() + scale_x_discrete(limits=unique(pol$month)) + facet_wrap(~unqsite,scales="free")
+```
+
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+ggplot(pol, aes(x=`Date Local`,y=`NO2 Mean`)) + geom_point(aes(colour = factor(urban),alpha = 1/100)) + facet_wrap(~unqsite,scales="free")
+#plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

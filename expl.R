@@ -7,7 +7,8 @@ library(RH2)
 # Read in dataset.
 pol <- read_csv("US_pollution_sample.csv", 
                                  col_types = cols('Date Local' = col_date(format = "%Y-%m-%d"), 
-                                 'NO2 1st Max Value' = col_double()))
+                                 'NO2 1st Max Value' = col_double(),
+                                 'State Code' = col_factor()))
 # Create unique site ref.
 str(pol)
 pol$unqref <- paste(as.character(pol$`State Code`),as.character(pol$`Site Num`))
@@ -66,7 +67,7 @@ View(jul)
 C0.plot <- ggplot(data=DS_C0) + aes(x=as.factor(`Site Num`),y=`CO Mean`)
 C0.plot + geom_boxplot()
 
-
+unique(pol$`O3 AQI`)
 
 
 unique(pol)
