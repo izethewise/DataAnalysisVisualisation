@@ -5,6 +5,8 @@ library(sqldf)
 library(RH2)
 library(grid)
 library(gridExtra)
+library(reshape2)
+
 
 
 p1 <- ggplot(data=pol) + aes(x=`NO2 Mean`) + geom_histogram(binwidth=max(pol$`NO2 Mean`)/80) + scale_x_continuous(limits = c(-5, 45))
@@ -32,14 +34,14 @@ pol$month <- as.integer(format(pol$`Date Local`,'%m'))
 
 
 # Dedup dataset.
-pol <- unique(pol[!is.na(pol$`CO AQI`) & !is.na(pol$`SO2 AQI`),])
+#pol <- unique(pol[!is.na(pol$`CO AQI`) & !is.na(pol$`SO2 AQI`),])
 
 
 unique(pol$unqsite)
 unique(pol$urban)
 unique(pol$month)
 unique(pol$year)
-View(pol)
+#View(pol)
 
 # Check missing dates.
 length(unique(pol$`Date Local`)) # 2312
@@ -113,22 +115,41 @@ ggplot(pol, aes(x=`Date Local`,y=`O3 1st Max Hour`)) + geom_line() #+ facet_wrap
 ggplot(pol, aes(x=`Date Local`,y=`SO2 1st Max Hour`)) + geom_line()# + facet_wrap(~unqsite,scales="free")
 ggplot(pol, aes(x=`Date Local`,y=`CO 1st Max Hour`)) + geom_line() #+ facet_wrap(~unqsite,scales="free")
 
-
+polx <- unique(pol[!is.na(pol$`CO AQI`) & !is.na(pol$`SO2 AQI`),])
+poly <- unique(pol[is.na(pol$`CO AQI`) & is.na(pol$`SO2 AQI`),])
 # dot plots of max hour
-ggplot(pol, aes(x=`Date Local`,y=`NO2 1st Max Hour`)) + geom_point(aes(alpha = 100)) + facet_wrap(~unqsite,scales="free")
-ggplot(pol, aes(x=`Date Local`,y=`O3 1st Max Hour`)) + geom_point(aes(alpha = 100)) + facet_wrap(~unqsite,scales="free")
-ggplot(pol, aes(x=`Date Local`,y=`SO2 1st Max Hour`)) + geom_point(aes(alpha = 100)) + facet_wrap(~unqsite,scales="free")
-ggplot(pol, aes(x=`Date Local`,y=`CO 1st Max Hour`)) + geom_point(aes(alpha = 100)) + facet_wrap(~unqsite,scales="free")
+p1 <- ggplot(polx, aes(x=`Date Local`,y=`NO2 1st Max Hour`)) + geom_point(aes(alpha = 100))# + facet_wrap(~unqsite,scales="free")
+p2 <- ggplot(pol, aes(x=`Date Local`,y=`NO2 1st Max Hour`)) + geom_point(aes(alpha = 100))# + facet_wrap(~unqsite,scales="free") 
+grid.arrange(p1, p2)
 
+p1 <- ggplot(polx, aes(x=`Date Local`,y=`O3 1st Max Hour`)) + geom_point(aes(alpha = 100)) + facet_wrap(~unqsite,scales="free")
+p2 <- ggplot(pol, aes(x=`Date Local`,y=`O3 1st Max Hour`)) + geom_point(aes(alpha = 100)) + facet_wrap(~unqsite,scales="free")
+grid.arrange(p1, p2)
+
+p1 <- ggplot(polx, aes(x=`Date Local`,y=`SO2 1st Max Hour`)) + geom_point(aes(alpha = 100)) + facet_wrap(~unqsite,scales="free")
+p2 <- ggplot(poly, aes(x=`Date Local`,y=`SO2 1st Max Hour`)) + geom_point(aes(alpha = 100)) + facet_wrap(~unqsite,scales="free")
+grid.arrange(p1, p2)
+
+p1 <- ggplot(polx, aes(x=`Date Local`,y=`CO 1st Max Hour`)) + geom_point(aes(alpha = 100))# + facet_wrap(~unqsite,scales="free")
+p2 <- ggplot(poly, aes(x=`Date Local`,y=`CO 1st Max Hour`)) + geom_point(aes(alpha = 100))# + facet_wrap(~unqsite,scales="free")
+grid.arrange(p1, p2)
+
+p1 <- ggplot(data=polx) + aes(x=`O3 1st Max Hour`) + geom_bar()
+p2 <- ggplot(data=poly) + aes(x=`O3 1st Max Hour`) + geom_bar()
+grid.arrange(p1, p2)
+
+p1 <- ggplot(data=polx) + aes(x=`SO2 1st Max Hour`) + geom_bar() 
+p2 <- ggplot(data=poly) + aes(x=`SO2 1st Max Hour`) + geom_bar()
+grid.arrange(p1, p2)
 
 ggplot(pol, aes(x=`NO2 1st Max Value`,y=1/`O3 1st Max Value`)) + geom_point(aes(alpha = 100)) + facet_wrap(~unqsite,scales="free")
 
 
 # box plots of max hour
-ggplot(pol, aes(x=month,y=`NO2 1st Max Hour`)) + geom_boxplot(aes(group=month)) + facet_wrap(~unqsite,scales="free")
-ggplot(pol, aes(x=month,y=`O3 1st Max Hour`)) + geom_boxplot(aes(group=month)) + facet_wrap(~unqsite,scales="free")
-ggplot(pol, aes(x=month,y=`SO2 1st Max Hour`)) + geom_boxplot(aes(group=month)) + facet_wrap(~unqsite,scales="free")
-ggplot(pol, aes(x=month,y=`CO 1st Max Hour`)) + geom_boxplot(aes(group=month)) + facet_wrap(~unqsite,scales="free")
+ggplot(pol, aes(x=month,y=`NO2 1st Max Hour`)) + geom_boxplot(aes(group=month))# + facet_wrap(~unqsite,scales="free")
+ggplot(pol, aes(x=month,y=`O3 1st Max Hour`)) + geom_boxplot(aes(group=month))# + facet_wrap(~unqsite,scales="free")
+ggplot(pol, aes(x=month,y=`SO2 1st Max Hour`)) + geom_boxplot(aes(group=month))# + facet_wrap(~unqsite,scales="free")
+ggplot(pol, aes(x=month,y=`CO 1st Max Hour`)) + geom_boxplot(aes(group=month))+ facet_wrap(~unqsite,scales="free")
 
 ggplot(data=pol) + aes(x=`NO2 Mean`) + geom_histogram(binwidth=0.2)
 
@@ -144,4 +165,74 @@ p2 <- ggplot(data=pol) + aes(x=`CO 1st Max Value`) + geom_histogram(binwidth=.1)
 bw <- max(pol$`CO AQI`)/div
 p3 <- ggplot(data=pol) + aes(x=`CO AQI`) + geom_bar()
 p4 <- ggplot(data=pol) + aes(x=`CO 1st Max Hour`) + geom_bar()
+grid.arrange(p1, p2, p3, p4)
+
+
+
+
+dat.m <- melt(pol,id.vars='ID', measure.vars=c('Freq','Freq.1','Freq.2'))
+library(ggplot2)
+p <- ggplot(dat.m) +
+  geom_boxplot(aes(x=ID, y=value, color=variable))
+
+
+
+m <- c(0,2805,
+       1,1515,
+       2,732,
+       3,698,
+       4,436,
+       5,577,
+       6,646,
+       7,452,
+       8,263,
+       9,162,
+       10,112,
+       11,128,
+       12,84,
+       13,111,
+       14,132,
+       15,127,
+       16,204,
+       17,216,
+       18,229,
+       19,261,
+       20,185,
+       21,316,
+       22,214,
+       23,231)
+m <- matrix(m,length(m)/2,2,byrow = T)
+`CO Max Hour Difference` <- m[,1]
+Count <- m[,2]
+df <- data.frame(`CO Max Hour Difference`,Count)
+ggplot(df) + geom_bar(aes(x=`CO Max Hour Difference`,y=Count),stat="identity")
+
+library(ggplot2)
+library(readr)
+library(sqldf)
+library(RH2)
+library(grid)
+library(gridExtra)
+# Read in dataset.
+pol <- read_csv("US_pollution_sample.csv", 
+                col_types = cols('Date Local' = col_date(format = "%Y-%m-%d"), 
+                                 'NO2 1st Max Value' = col_double()))
+# Dedup dataset.
+pol <- unique(pol[!is.na(pol$`CO AQI`) & !is.na(pol$`SO2 AQI`),])
+
+# Add derived variables.
+pol$unqref <- paste(as.character(pol$`State Code`),as.character(pol$`Site Num`))
+pol$unqsite <- paste(as.character(pol$`County`),as.character(pol$`State`), sep=", ")
+pol$unqsitemul <- paste(as.character(pol$`County`),as.character(pol$`State`), sep="\n")
+pol$unqsitemul <- gsub(" ", "\n", pol$unqsitemul)
+pol$urban <- !(pol$City=="Not in a city")
+pol$year <- as.integer(format(pol$`Date Local`,'%Y'))
+pol$shyear <- as.integer(format(pol$`Date Local`,'%y'))
+pol$month <- as.integer(format(pol$`Date Local`,'%m'))
+
+
+p1 <- ggplot(pol, aes(x=`Date Local`,y=`NO2 1st Max Hour`)) + geom_point(aes(alpha = 100))# + facet_wrap(~unqsite,scales="free")
+p2 <- ggplot(pol, aes(x=`Date Local`,y=`O3 1st Max Hour`)) + geom_point(aes(alpha = 100))# + facet_wrap(~unqsite,scales="free")
+p3 <- ggplot(pol, aes(x=`Date Local`,y=`SO2 1st Max Hour`)) + geom_point(aes(alpha = 100))# + facet_wrap(~unqsite,scales="free")
+p4 <- ggplot(pol, aes(x=`Date Local`,y=`CO 1st Max Hour`)) + geom_point(aes(alpha = 100))# + facet_wrap(~unqsite,scales="free")
 grid.arrange(p1, p2, p3, p4)
