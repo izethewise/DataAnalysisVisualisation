@@ -1,9 +1,12 @@
 ---
-title: "Analysis of US Polution Data"
+title: "Exploratory Analysis of US Polution Data"
 author: "Isaac Murray"
-date: "15 December 2016"
+
 output: pdf_document
+bibliography: mybib.bib
 ---
+
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -14,6 +17,11 @@ library(sqldf)
 library(RH2)
 library(grid)
 library(gridExtra)
+library('knitr')
+library(stargazer)
+library(Hmisc)
+library(summarytools)
+library(tibble)
 # Read in dataset.
 pol <- read_csv("US_pollution_sample.csv", 
                 col_types = cols('Date Local' = col_date(format = "%Y-%m-%d"), 
@@ -33,84 +41,79 @@ pol$urban <- !(pol$City=="Not in a city")
 pol$year <- as.integer(format(pol$`Date Local`,'%Y'))
 pol$shyear <- as.integer(format(pol$`Date Local`,'%y'))
 pol$month <- as.integer(format(pol$`Date Local`,'%m'))
+sumstat <- function(df,cols){
+  kable(df[,cols], format = "markdown")
+}
+mindate <- min(polsum$`Date Local`)
+maxdate <- max(polsum$`Date Local`)
+obscount <- nrow(polsum)
 ```
 
-# Introduction
+\section*{Introduction}
 
-This report describes an exploratory data analysis of environmental polution data taken from the United States Environmental Protection Agency (EPA) website. 
+This report describes an exploratory data analysis of environmental pollution data taken from the United States Environmental Protection Agency (EPA) website [@epa2016]. The analysis has been carried out using the R programming language [@rlang] and uses graphical methods to investigate the data.
 
-# Dataset Description
+\section{Dataset Description}
 
-The original EPA data is contained in multiple files and this has been combined and made available for download. The dataset being analysed is a subset of the downloaded data.  
+The EPA data is a time series of environmental pollutant measurements. The original EPA data is contained in multiple files and this has been combined and made available for download [@kaggle2016]. The dataset being analysed is a subset of the downloaded data.  
 
-The following table summarises the dataset variables. Descriptions are copied verbatim from the download site:
+The following table summarises the dataset variables. Descriptions are copied verbatim from the download site [@kaggle2016]:
 
-| Name              | Description                                                                   |R Data type |
+
+ Name              | Description                                                                   |R Data type |
 |:------------------|:------------------------------------------------------------------------------|:------------|
-| State Code        |The code allocated by US EPA to each state                                     | int |
-| County code       |The code of counties in a specific state allocated by US EPA                   | int |
-| Site Num          | The site number in a specific county allocated by US EPA                      | int |
-| Address           | State of monitoring site                                                      | chr |
-| State             | The code allocated by US EPA to each state                                    | int |
-| County            | County of monitoring site                                                     | chr |
-| City              | City of the monitoring site                                                   | chr | 
-| Date Local        | Date of monitoring                                                            | Date |  
-| NO2 Units         | The units measured for NO2                                                     | num | 
-| NO2 Mean          | The arithmetic mean of concentration of NO2 within a given day                 | num | 
-| NO2 AQI           | The calculated air quality index of NO2 within a given day                    | int |
-| NO2 1st Max Value | The maximum value obtained for NO2 concentration in a given day                | num |
-| NO2 1st Max Hour  | The hour when the maximum NO2 concentration was recorded in a given day        | num |
-
-# Descriptive statistics and data artefacts
-The dataset includes data collected at seven sites:  
-`r paste(unique(pol$unqsite), sep="\n")`
-These have been 
-```{r descriptive, echo=FALSE}
-#summary(polsum)
+ State Code        |The code allocated by US EPA to each state                                     | int |
+ County code       |The code of counties in a specific state allocated by US EPA                   | int |
+ Site Num          | The site number in a specific county allocated by US EPA                      | int |
+ Address           | State of monitoring site                                                      | chr |
+ State             | The code allocated by US EPA to each state                                    | int |
+ County            | County of monitoring site                                                     | chr |
+ City              | City of the monitoring site                                                   | chr | 
+ Date Local        | Date of monitoring                                                            | Date | 
+ ||**The four pollutants (NO2, O3, SO2 and CO) each has 5 specific columns. For instance, for NO2**         ||     
+ NO2 Units         | The units measured for NO2                                                     | num | 
+ NO2 Mean          | The arithmetic mean of concentration of NO2 within a given day                 | num | 
+ NO2 AQI           | The calculated air quality index of NO2 within a given day                    | int |
+ NO2 1st Max Value | The maximum value obtained for NO2 concentration in a given day                | num |
+ NO2 1st Max Hour  | The hour when the maximum NO2 concentration was recorded in a given day        | num |
+ 
+The variables from `State Code` to `City` above describe the location at which the pollution measurement was taken. `County` and `State` are unique at each site and are used to identify the location in the analysis that follows.
+\clearpage
+\section{Descriptive statistics and data artefacts}
+\subsection{Measurement sites and date range of observations}
+The measurements were taken at the following sites between `r mindate` and `r maxdate` resulting in `r obscount` observations:
+```{r sites, echo=FALSE}
+kable(unique(polsum[,c("County","State")]), format = "markdown")
 ```
-## Measurement sites and date range of plots  
-
-
-The following plot shows the date ranges of the measurements taken at each site. The gaps indicate missing data. 
+The units of measurement for each pollutant are shown below. The absolute values of pollutant are not important for this analysis and units are not included in the graphs that follow.
+```{r units, echo=FALSE}
+kable(unique(polsum[,c("NO2 Units","O3 Units","SO2 Units","CO Units")]), format = "markdown")
+```
+Summary statistics of the quantitative variables are given below.
+```{r sumstats,echo=FALSE}
+desc <- descr(polsum[,c("NO2 Mean","NO2 1st Max Value","NO2 1st Max Hour","NO2 AQI"
+               ,"O3 Mean","O3 1st Max Value","O3 1st Max Hour","O3 AQI"
+               ,"SO2 Mean","SO2 1st Max Value","SO2 1st Max Hour","SO2 AQI"
+               ,"CO Mean","CO 1st Max Value","CO 1st Max Hour","CO AQI"
+                )], transpose=TRUE)
+desc <- data.frame(desc[1])
+desc <- rownames_to_column(desc)
+desc <- desc[,c(1,2,3,4,5,6)]
+colnames(desc)<-c("Variable","Mean","Std.Dev","Min","Max","Median")
+sumstat(desc)
+```
+\clearpage
+The following plot shows the date ranges of the measurements taken at each site. The gaps indicate missing data:
+\newline \newline
 ```{r missing, echo=FALSE}
-ggplot(pol, aes(x=`Date Local`,y=unqsitemul)) + geom_point()
+ggplot(pol, aes(x=`Date Local`,y=unqsitemul)) + geom_point() +  labs(x="Date Local",y=NULL) 
 ```
-
-## Combining of measurements in the data
-
-For SO2 and CO, two groups of measurements are represented as one group of variables in the data. Each measurement gives its own readings for mean, AQI, 1st Max Value and 1st Max Hour. The measurements can be distinguished by the presence of an AQI value of NA. The graphs below show count of differences between readings for 1st Max Hour value for a given date at a given site. For the purposes of the analysis that follows, it is not desirable to have more than one 1st Max Hour reading per site per day per polutant. As such, the measurements associated with SO2 AQI = NA and CO AQI = NA are arbitrarily excluded.
-
-```{r maxDiff, echo=FALSE, message=FALSE, warning=FALSE}
-m <- c(0,2805,
-       1,1515,
-       2,732,
-       3,698,
-       4,436,
-       5,577,
-       6,646,
-       7,452,
-       8,263,
-       9,162,
-       10,112,
-       11,128,
-       12,84,
-       13,111,
-       14,132,
-       15,127,
-       16,204,
-       17,216,
-       18,229,
-       19,261,
-       20,185,
-       21,316,
-       22,214,
-       23,231)
-m <- matrix(m,length(m)/2,2,byrow = T)
-`CO 1st Max Hour Difference` <- m[,1]
-Count <- m[,2]
-df <- data.frame(`CO 1st Max Hour Difference`,Count)
-p1 <- ggplot(df) + geom_bar(aes(x=`CO 1st Max Hour Difference`,y=Count),stat="identity")
-
+\clearpage
+\subsection{Filtering of combined measurements in the data}
+For SO2 and CO, two groups of measurements are represented as one group of variable in the data. Each measurement gives its own readings for mean, AQI, 1st Max Value and 1st Max Hour. The measurements can be distinguished by the presence of an AQI value of `NA`. For the purposes of the analysis that follows, it is not desirable to have more than one 1st Max Hour reading per site per day per pollutant. As such, the measurements associated with SO2 AQI = `NA` and CO AQI = `NA` are arbitrarily excluded. \newline \newline
+Below are examples of two measurements at the same site on the same day for SO2 and a graph showing the magnitude and frequency of differences between measurements for SO2 1st Max Hour Difference at the same site on the same day.
+```{r maxDiffSO2, echo=FALSE, message=FALSE, warning=FALSE}
+sumstat(polsum[c(22,23),], c("State","County","Date Local","SO2 Mean","SO2 1st Max Value","SO2 1st Max Hour","SO2 AQI"))
 m <- c(0,	3092,
        1,	4162,
        2,	5292,
@@ -139,13 +142,43 @@ m <- matrix(m,length(m)/2,2,byrow = T)
 `SO2 1st Max Hour Difference` <- m[,1]
 Count <- m[,2]
 df <- data.frame(`SO2 1st Max Hour Difference`,Count)
-p2 <- ggplot(df) + geom_bar(aes(x=`SO2 1st Max Hour Difference`,y=Count),stat="identity")
-
-grid.arrange(p1, p2)
+ggplot(df) + geom_bar(aes(x=`SO2 1st Max Hour Difference`,y=Count),stat="identity")
 ```
-
-
-## NO2 variables
+\clearpage
+Examples of two measurements at the same site on the same day for CO and a graph showing the magnitude and frequency of differences between measurements for CO 1st Max Hour Difference at the same site on the same day.
+```{r maxDiffCO, echo=FALSE, message=FALSE, warning=FALSE}
+sumstat(polsum[c(2,1),], c("State","County","Date Local","CO Mean","CO 1st Max Value","CO 1st Max Hour","CO AQI"))
+m <- c(0,2805,
+       1,1515,
+       2,732,
+       3,698,
+       4,436,
+       5,577,
+       6,646,
+       7,452,
+       8,263,
+       9,162,
+       10,112,
+       11,128,
+       12,84,
+       13,111,
+       14,132,
+       15,127,
+       16,204,
+       17,216,
+       18,229,
+       19,261,
+       20,185,
+       21,316,
+       22,214,
+       23,231)
+m <- matrix(m,length(m)/2,2,byrow = T)
+`CO 1st Max Hour Difference` <- m[,1]
+Count <- m[,2]
+df <- data.frame(`CO 1st Max Hour Difference`,Count)
+ggplot(df) + geom_bar(aes(x=`CO 1st Max Hour Difference`,y=Count),stat="identity")
+```
+\subsection{Frequency distributions of NO2 variables}
 ```{r varNO2, echo=FALSE, message=FALSE, warning=FALSE}
 div <- 100
 bw <- max(pol$`NO2 Mean`)/div
@@ -158,22 +191,26 @@ p3 <- ggplot(data=pol) + aes(x=`NO2 AQI`) + geom_bar()# geom_histogram(binwidth=
 p4 <- ggplot(data=pol) + aes(x=`NO2 1st Max Hour`) + geom_bar()#geom_histogram(binwidth=1) 
 grid.arrange(p1, p2, p3, p4)
 ```
-### Artefacts ###  
-#### NO2 1st Max Value  
-Notwithstanding a measurement bias towards whole numbers of units, Baltimore, Maryland and Cass, North Dakota sites appear to measure NO2 1st Max Value to a greater precision than the other sites:  
+\clearpage
+\subsubsection{Artefacts} 
+\subsubsection{NO2 1st Max Value}
+Notwithstanding a measurement bias towards whole numbers of units, Baltimore, Maryland and Cass, North Dakota sites appear to measure NO2 1st Max Value to a greater precision than the other sites:
+\newline \newline
 ```{r NO2MaxArt, echo=FALSE, message=FALSE, warning=FALSE}
 div <- 250
 bw <- max(pol$`NO2 1st Max Value`)/div
 ggplot(data=pol) + aes(x=`NO2 1st Max Value`) + geom_histogram(binwidth=bw) + scale_x_continuous(limits = c(0,20))+ facet_wrap(~unqsite,scales="free")
 ```
-#### NO2 AQI  
-All sites indicate a bias towards the values '8' and '25' for NO2 AQI:  
+\clearpage
+\subsubsection{NO2 AQI}
+All sites indicate a bias towards the values 8 and 25 for NO2 AQI:
+\newline \newline
 ```{r NO2AQIArt, echo=FALSE, message=FALSE, warning=FALSE}
 bw <- max(pol$`NO2 AQI`)/div
 ggplot(data=pol) + aes(x=`NO2 AQI`) + geom_bar()+ facet_wrap(~unqsite,scales="free")+ scale_x_continuous(limits = c(6,26))
 ```
 
-## O3 variables
+\subsubsection{Frequency distributions of O3 variables}
 ```{r varO3, echo=FALSE, message=FALSE, warning=FALSE}
 div <- 100
 bw <- max(pol$`O3 Mean`)/div
@@ -186,8 +223,10 @@ p3 <- ggplot(data=pol) + aes(x=`O3 AQI`) + geom_bar()
 p4 <- ggplot(data=pol) + aes(x=`O3 1st Max Hour`) + geom_bar()
 grid.arrange(p1, p2, p3, p4)
 ```
+\subsubsection{Artefacts}
+There appears to be a measurement bias towards a zero value for O3 1st Max Hour.
 
-## SO2 variables
+\subsection{Frequency distributions of SO2 variables}
 ```{r varSO2, echo=FALSE, message=FALSE, warning=FALSE}
 p1 <- ggplot(data=pol) + aes(x=`SO2 Mean`) + geom_histogram(binwidth=0.5)
 p2 <- ggplot(data=pol) + aes(x=`SO2 1st Max Value`) + geom_histogram(binwidth=1) + scale_x_continuous(limits = c(-5, 45))
@@ -195,13 +234,15 @@ p3 <- ggplot(data=pol) + aes(x=`SO2 AQI`) + geom_bar()
 p4 <- ggplot(data=pol) + aes(x=`SO2 1st Max Hour`) + geom_bar() 
 grid.arrange(p1, p2, p3, p4)
 ```
-### Artefacts ###  
-All sites other than Baltimore, Maryland and arguabley Cass, North Dakota show a disproportionate frequency of zero value measurements.  
+\clearpage
+\subsubsection{Artefacts}
+There appears to be a measurement bias towards a zero value for SO2 1st Max Hour. All sites other than Baltimore, Maryland and arguably Cass, North Dakota show a disproportionate frequency of zero value measurements for SO2 Mean.
+\newline \newline
 ```{r artSO2, echo=FALSE, message=FALSE, warning=FALSE}
 ggplot(data=pol) + aes(x=`SO2 Mean`) + geom_histogram(binwidth=0.1)+ facet_wrap(~unqsite,scales="free")
 ```
 
-## CO variables
+\subsection{Frequency distributions of CO variables}
 ```{r varCO, echo=FALSE, message=FALSE, warning=FALSE}
 div <- 500
 bw <- max(pol$`CO Mean`)/div
@@ -212,17 +253,13 @@ p3 <- ggplot(data=pol) + aes(x=`CO AQI`) + geom_bar()
 p4 <- ggplot(data=pol) + aes(x=`CO 1st Max Hour`) + geom_bar()
 grid.arrange(p1, p2, p3, p4)
 ```
-### Artefacts ###
-Artefacts
-All sites other than Baltimore, Maryland a disproportionate frequency of zero measurements.
-```{r artCO, echo=FALSE, message=FALSE, warning=FALSE}
-ggplot(data=pol) + aes(x=`SO2 Mean`) + geom_histogram(binwidth=0.1)+ facet_wrap(~unqsite,scales="free")
-```
-
-# Notable features of the data
-
-## Line plots of means over time for each polutant
-The mean daily concentration level of all polutants show a seasonal pattern; O3 has a summer peak as opposed to a winter peak in other polutants:  
+\subsection{Artefacts}
+There appears to be a measurement bias towards a zero value for CO 1st Max Hour.
+\clearpage
+\section{Notable features of the data}
+\subsection{Time series of mean daily pollutant level}
+The mean daily concentration level of all pollutants show a seasonal pattern; O3 has a summer peak as opposed to a winter peak in other pollutants:  
+\newline \newline
 ```{r line, echo=FALSE}
 p1 <- ggplot(pol, aes(x=`Date Local`,y=`NO2 Mean`)) + geom_line()# + facet_wrap(~unqsite,scales="free")
 p2 <- ggplot(pol, aes(x=`Date Local`,y=`O3 Mean`)) + geom_line()# + facet_wrap(~unqsite,scales="free")
@@ -230,25 +267,63 @@ p3 <- ggplot(pol, aes(x=`Date Local`,y=`SO2 Mean`)) + geom_line()# + facet_wrap(
 p4 <- ggplot(pol, aes(x=`Date Local`,y=`CO Mean`)) + geom_line()# + facet_wrap(~unqsite,scales="free")
 grid.arrange(p1, p2, p3, p4)
 ```
-The seasonal SO2 pattern is more obvious in some sites than others. Of note is the comparatively high and constant SO2 levels at Cuyahoga, Ohio.  
+\clearpage
+\subsection{Mean daily SO2 level by month and by site}
+The seasonal SO2 pattern is more obvious in some sites than others. Of note is the comparatively high and constant SO2 levels at Cuyahoga, Ohio. This could be accounted for by a constantly emitting source of of SO2 pollution in the vicinity of Cuyahoga, Ohio.
+\newline \newline
 ```{r so2year, echo=FALSE}
 #ggplot(pol, aes(x=`Date Local`,y=`SO2 Mean`)) + geom_line() + facet_wrap(~unqsite,scales="free")
-ggplot(data=pol) + aes(reorder(month,`SO2 Mean`),`SO2 Mean`) + geom_boxplot() + scale_x_discrete(limits=unique(pol$month)) + facet_wrap(~unqsite,scales="free")
-```
-Plotting the time of day of peak polutant level shows features of note for the polutants measured:  
-```{r peakPlot, echo=FALSE}
-p1 <- ggplot(pol, aes(x=`Date Local`,y=`NO2 1st Max Hour`)) + geom_point(aes(alpha = 1/1000))# + facet_wrap(~unqsite,scales="free")
-p2 <- ggplot(pol, aes(x=`Date Local`,y=`O3 1st Max Hour`)) + geom_point(aes(alpha = 1/1000))# + facet_wrap(~unqsite,scales="free")
-p3 <- ggplot(pol, aes(x=`Date Local`,y=`SO2 1st Max Hour`)) + geom_point(aes(alpha = 1/1000))# + facet_wrap(~unqsite,scales="free")
-p4 <- ggplot(pol, aes(x=`Date Local`,y=`CO 1st Max Hour`)) + geom_point(aes(alpha = 1/1000))# + facet_wrap(~unqsite,scales="free")
-grid.arrange(p1, p2, p3, p4,nrow=4)
+ggplot(data=pol) + aes(reorder(month,`SO2 Mean`),`SO2 Mean`) + geom_boxplot() + scale_x_discrete(limits=unique(pol$month)) + facet_wrap(~unqsite,scales="free") +  labs(x="Month",y=NULL) 
 ```
 
-## Box plots of means by month of year for each polutant
-```{r box2, echo=FALSE}
-ggplot(data=pol) + aes(reorder(month,`NO2 Mean`),`NO2 Mean`) + geom_boxplot() + scale_x_discrete(limits=unique(pol$month)) + facet_wrap(~unqsite,scales="free")
-ggplot(data=pol) + aes(reorder(month,`O3 Mean`),`O3 Mean`) + geom_boxplot() + scale_x_discrete(limits=unique(pol$month)) + facet_wrap(~unqsite,scales="free")
-ggplot(data=pol) + aes(reorder(month,`SO2 Mean`),`SO2 Mean`) + geom_boxplot() + scale_x_discrete(limits=unique(pol$month)) + facet_wrap(~unqsite,scales="free")
-ggplot(data=pol) + aes(reorder(month,`CO Mean`),`CO Mean`) + geom_boxplot() + scale_x_discrete(limits=unique(pol$month)) + facet_wrap(~unqsite,scales="free")
+\clearpage
+\subsection{Hour of peak pollutant level by time}
+Plotting the time of day of peak pollutant level by measurement date shows features of note for the pollutants measured. For NO2 and O3 there is an obvious time of day pattern of peak level which in turn has an annual dimension. CO has a time of day pattern for peak that does not have such a strong annual dimension. SO2 has no obvious time of day pattern. 
+\newline \newline
+```{r peakPlot, echo=FALSE}
+pols <- pol#[pol$year>=2012 & pol$year<=2014,]
+p1 <- ggplot(pols, aes(x=`Date Local`,y=`NO2 1st Max Hour`)) + geom_point(aes(alpha = 1/1000)) + theme(legend.position="none")
+p2 <- ggplot(pols, aes(x=`Date Local`,y=`O3 1st Max Hour`)) + geom_point(aes(alpha = 1/1000)) + theme(legend.position="none")
+p3 <- ggplot(pols, aes(x=`Date Local`,y=`SO2 1st Max Hour`)) + geom_point(aes(alpha = 1/1000)) + theme(legend.position="none")
+p4 <- ggplot(pols, aes(x=`Date Local`,y=`CO 1st Max Hour`)) + geom_point(aes(alpha = 1/1000)) + theme(legend.position="none")
+grid.arrange(p1, p2, nrow=2)
+grid.arrange(p3, p4, nrow=2)
 ```
+\clearpage
+\subsection{Probability density of hour of peak pollutant in winter and summer}
+The following probability density graphs comparing winter (month 1) with summer (month 7), make the seasonal patterns of peak pollutant level clearer. For NO2, during the summer, the hours of the day where peak levels are unlikely are greatly extended. For O3, during the summer, there is a low probability of peak levels at night time. This is increased during the winter. For SO2 the time of peak level is more evenly spread throughout the day during both summer and winter. For CO, the hour of peak pollutant distribution is somewhat similar between summer and winter. 
+\newline \newline
+```{r dense, echo=FALSE}
+poldiff <- pol[pol$month==1 | pol$month==7,]
+poldiff$month <- as.factor(poldiff$month)
+p1 <- ggplot(poldiff[poldiff$`NO2 1st Max Hour`>0,], aes(x = `NO2 1st Max Hour`, fill = month)) + geom_density(alpha = 0.5, bw=1) +  labs(x="NO2 1st Max Hour",y=NULL) 
+p2 <- ggplot(poldiff[poldiff$`O3 1st Max Hour`>0,], aes(x = `O3 1st Max Hour`, fill = month)) + geom_density(alpha = 0.5, bw=1) +  labs(x="O3 1st Max Hour",y=NULL) 
+p3 <- ggplot(poldiff[poldiff$`SO2 1st Max Hour` >0,], aes(x = `SO2 1st Max Hour`, fill = month)) + geom_density(alpha = 0.5, bw=1) +  labs(x="SO2 1st Max Hour",y=NULL) 
+p4 <- ggplot(poldiff[poldiff$`CO 1st Max Hour` >0,], aes(x = `CO 1st Max Hour`, fill = month)) + geom_density(alpha = 0.5, bw=1) +  labs(x="CO 1st Max Hour",y=NULL) 
+grid.arrange(p1, p2, p3, p4)
+```
+\clearpage
+\section{Discussion}
+Factors affecting pollution levels is undoubtedly complex. This discussion focuses on factors that affect NO2; O3; SO2; and CO daily and annually in the context of the graphs in the previous sections. The following summarises the main sources of NO2; O3; SO2; and CO pollution [@epa2016]:
+\newline 
+ 
+Pollutant  | Source  |
+|:----------|:-------|
+NO2 | Vehicle emissions |
+O3 | NO2 in presence of sunlight |
+SO2 | Electricity production and industrial processes |
+CO | Vehicle and gas heating emissions |
+
+The graphs in the previous sections are consistent with: \newline
+A *rush hour* pattern of NO2 and CO (emitted from vehicles) as evidenced by the lower probability of peak pollutant levels during working hours. \newline
+Inverse proportionality between NO2 and O3 as evidenced by the opposing annual pattern of daily mean pollutant level; and daily patterns of peak pollutant level. \newline
+Direct proportionality between sunlight and O3 as evidenced by higher mean daily levels during the summer; and greater probability of peak levels during daylight hours year-round. \newline
+Greater levels of all pollutants except O3 during the winter months due to greater fuel combustion for heat as evidenced by the higher mean daily levels during the winter. \newline
+More consistent year round SO2 production for electricity and industry as evidence by a less pronounced seasonal pattern for mean daily SO2 levels than for other pollutants.
+
+\section{Conclusion}
+The subset of EPA data analysed in this report shows pollutant levels that are consistent with daily and seasonal patterns of sunlight and human behaviour when analysed graphically. 
+
+
+# References
 
