@@ -1,5 +1,5 @@
 ---
-title: "Exploratory Analysis of US Polution Data"
+title: "Exploratory Analysis of US Pollution Data"
 author: "Isaac Murray"
 
 output: pdf_document
@@ -251,7 +251,7 @@ p4 <- ggplot(data=pol) + aes(x=`CO 1st Max Hour`) + geom_bar()
 grid.arrange(p1, p2, p3, p4)
 ```
 \subsection{Artefacts}
-There appears to be a measurement bias towards a zero value for CO 1st Max Hour.
+There appears to be a measurement bias towards values of zero, 0.1 and 0.2 for CO mean; away from an AQI value of 4; and towards a zero value for CO 1st Max Hour.
 \clearpage
 \section{Notable features of the data}
 \subsection{Time series of mean daily pollutant level}
@@ -266,11 +266,11 @@ grid.arrange(p1, p2, p3, p4)
 ```
 \clearpage
 \subsection{Mean daily SO2 level by month and by site}
-The seasonal SO2 pattern is more obvious in some sites than others. Of note is the comparatively high and constant SO2 levels at Cuyahoga, Ohio. This could be accounted for by a constantly emitting source of of SO2 pollution in the vicinity of Cuyahoga, Ohio.
+The seasonal SO2 pattern is more obvious in some sites than others. Of note is the comparatively high and constant SO2 levels at Cuyahoga, Ohio. This could be accounted for by a constantly emitting source of SO2 pollution in the vicinity of Cuyahoga, Ohio.
 \newline \newline
 ```{r so2year, echo=FALSE}
 #ggplot(pol, aes(x=`Date Local`,y=`SO2 Mean`)) + geom_line() + facet_wrap(~unqsite,scales="free")
-ggplot(data=pol) + aes(reorder(month,`SO2 Mean`),`SO2 Mean`) + geom_boxplot() + scale_x_discrete(limits=unique(pol$month)) + facet_wrap(~unqsite,scales="free") +  labs(x="Month",y=NULL) 
+ggplot(data=pol) + aes(reorder(month,`SO2 Mean`),`SO2 Mean`) + geom_boxplot() + scale_x_discrete(limits=unique(pol$month)) + facet_wrap(~unqsite,scales="free") +  labs(x=NULL,y=NULL) 
 ```
 
 \clearpage
@@ -313,7 +313,7 @@ grid.arrange(p1, p2, p3, p4)
 ```
 \clearpage
 \section{Discussion}
-Factors affecting pollution levels is undoubtedly complex. This discussion focuses on factors that affect NO2; O3; SO2; and CO daily, weekly and annually in the context of the graphs in the previous sections. The following summarises the main sources of NO2; O3; SO2; and CO pollution [@epa2016]:
+Factors affecting pollution levels are undoubtedly complex. This discussion focuses on factors that affect NO2; O3; SO2; and CO daily, weekly and annually in the context of the graphs in the previous sections. The following table summarises the main sources of NO2; O3; SO2; and CO pollution [@epa2016]:
 \newline 
  
 Pollutant  | Source  |
@@ -328,7 +328,7 @@ A *rush hour* pattern of NO2 and CO (emitted from vehicles) as evidenced by the 
 An inverse relationship between NO2 and O3 (the NO2 to NO + O3 reaction in the presence of sunlight [@aus2016]), as evidenced by the opposing annual pattern of daily mean pollutant level; and daily patterns of peak pollutant level. \newline
 A proportional relationship between sunlight and O3 as evidenced by higher mean daily levels during the summer; and greater probability of peak levels during daylight hours year-round. \newline
 Greater levels of all pollutants except O3 during the winter months due to greater fuel combustion for heat as evidenced by the higher mean daily levels during the winter. \newline
-More consistent year round SO2 production for electricity and industry as evidence by a less pronounced seasonal pattern for mean daily SO2 levels than for other pollutants.
+More consistent year-round SO2 production for electricity and industry as evidence by a less pronounced seasonal pattern for mean daily SO2 levels than for other pollutants.
 
 \section{Conclusion}
 The subset of EPA data analysed in this report shows pollutant levels that are consistent with daily, weekly and seasonal patterns of sunlight and human behaviour when analysed graphically. 
