@@ -41,6 +41,8 @@ pol$urban <- !(pol$City=="Not in a city")
 pol$year <- as.integer(format(pol$`Date Local`,'%Y'))
 pol$shyear <- as.integer(format(pol$`Date Local`,'%y'))
 pol$month <- as.integer(format(pol$`Date Local`,'%m'))
+pol$day <- weekdays(as.Date(pol$`Date Local`))
+pol$Weekend <- pol$day=="Saturday" | pol$day=="Sunday"
 sumstat <- function(df,cols){
   kable(df[,cols], format = "markdown")
 }
@@ -303,26 +305,38 @@ p4 <- ggplot(poldiff[poldiff$`CO 1st Max Hour` >0,], aes(x = `CO 1st Max Hour`, 
 grid.arrange(p1, p2, p3, p4)
 ```
 \clearpage
+\subsection{Probability density of hour of peak pollutant during week and weekend}
+The following probability density graphs comparing week and weekend indicate that NO2 and CO vary more between week and weekend than O3 or SO2. NO2 and CO show an increased probablitly for peak levels in the early to mid-morning on weekdays compared to weekends. 
+\newline \newline
+```{r densewe, echo=FALSE}
+poldiff <- pol
+p1 <- ggplot(poldiff[poldiff$`NO2 1st Max Hour`>0,], aes(x = `NO2 1st Max Hour`, fill = Weekend)) + geom_density(alpha = 0.5, bw=1) +  labs(x="NO2 1st Max Hour",y=NULL) 
+p2 <- ggplot(poldiff[poldiff$`O3 1st Max Hour`>0,], aes(x = `O3 1st Max Hour`, fill = Weekend)) + geom_density(alpha = 0.5, bw=1) +  labs(x="O3 1st Max Hour",y=NULL) 
+p3 <- ggplot(poldiff[poldiff$`SO2 1st Max Hour` >0,], aes(x = `SO2 1st Max Hour`, fill = Weekend)) + geom_density(alpha = 0.5, bw=1) +  labs(x="SO2 1st Max Hour",y=NULL) 
+p4 <- ggplot(poldiff[poldiff$`CO 1st Max Hour` >0,], aes(x = `CO 1st Max Hour`, fill = Weekend)) + geom_density(alpha = 0.5, bw=1) +  labs(x="CO 1st Max Hour",y=NULL) 
+grid.arrange(p1, p2, p3, p4)
+```
+\clearpage
 \section{Discussion}
-Factors affecting pollution levels is undoubtedly complex. This discussion focuses on factors that affect NO2; O3; SO2; and CO daily and annually in the context of the graphs in the previous sections. The following summarises the main sources of NO2; O3; SO2; and CO pollution [@epa2016]:
+Factors affecting pollution levels is undoubtedly complex. This discussion focuses on factors that affect NO2; O3; SO2; and CO daily, weekly and annually in the context of the graphs in the previous sections. The following summarises the main sources of NO2; O3; SO2; and CO pollution [@epa2016]:
 \newline 
  
 Pollutant  | Source  |
-|:----------|:-------|
-NO2 | Vehicle emissions |
-O3 | NO2 in presence of sunlight |
-SO2 | Electricity production and industrial processes |
-CO | Vehicle and gas heating emissions |
+|:----------|:----------------------------------------------------------------------------------|
+NO2 | NO2 primarily gets in the air from the burning of fuel. NO2 forms from emissions from cars, trucks and buses, power plants, and off-road equipment. |
+O3 |  NOx and volatile organic compounds emitted by cars, power plants, industrial boilers, refineries, chemical plants, chemically reacting in the presence of sunlight. |
+SO2 | Burning of fossil fuels by power plants and other industrial facilities |
+CO | Vehicles or machinery that burn fossil fuels. Kerosene and gas space heaters, furnaces, and stoves. |
 
 The graphs in the previous sections are consistent with: \newline
-A *rush hour* pattern of NO2 and CO (emitted from vehicles) as evidenced by the lower probability of peak pollutant levels during working hours. \newline
-Inverse proportionality between NO2 and O3 as evidenced by the opposing annual pattern of daily mean pollutant level; and daily patterns of peak pollutant level. \newline
-Direct proportionality between sunlight and O3 as evidenced by higher mean daily levels during the summer; and greater probability of peak levels during daylight hours year-round. \newline
+A *rush hour* pattern of NO2 and CO (emitted from vehicles) as evidenced by the lower probability of peak pollutant levels during working hours. This is further supported by the greater probability of an early to mid-morning weekday peak seen particularly in NO2 but also in CO. \newline
+An inverse relationship between NO2 and O3 (the NO2 to NO + O3 reaction in the presence of sunlight [@aus2016]), as evidenced by the opposing annual pattern of daily mean pollutant level; and daily patterns of peak pollutant level. \newline
+A proportional relationship between sunlight and O3 as evidenced by higher mean daily levels during the summer; and greater probability of peak levels during daylight hours year-round. \newline
 Greater levels of all pollutants except O3 during the winter months due to greater fuel combustion for heat as evidenced by the higher mean daily levels during the winter. \newline
 More consistent year round SO2 production for electricity and industry as evidence by a less pronounced seasonal pattern for mean daily SO2 levels than for other pollutants.
 
 \section{Conclusion}
-The subset of EPA data analysed in this report shows pollutant levels that are consistent with daily and seasonal patterns of sunlight and human behaviour when analysed graphically. 
+The subset of EPA data analysed in this report shows pollutant levels that are consistent with daily, weekly and seasonal patterns of sunlight and human behaviour when analysed graphically. 
 
 
 # References
