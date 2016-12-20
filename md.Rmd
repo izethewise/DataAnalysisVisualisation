@@ -301,7 +301,7 @@ grid.arrange(p1, p2, p3, p4)
 ```
 \clearpage
 \subsection{Probability density of hour of peak pollutant during week and weekend}
-The following probability density graphs comparing week and weekend indicate that NO2 and CO vary more between week and weekend than O3 or SO2. NO2 and CO show an increased probablitly for peak levels in the early to mid-morning on weekdays compared to weekends. 
+The following probability density graphs comparing week and weekend indicate that NO2 and CO vary more between week and weekend than O3 or SO2. NO2 and CO show an increased probability for peak levels in the early to mid-morning on weekdays compared to weekends. 
 \newline \newline
 ```{r densewe, echo=FALSE}
 poldiff <- pol
